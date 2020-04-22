@@ -1,0 +1,2 @@
+rootProject.name='MyVoice'
+include ':app'
