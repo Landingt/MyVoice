@@ -75,16 +75,7 @@ public class MainActivity extends Activity implements OnClickListener {
 
     private StringBuffer buffer = new StringBuffer();
 
-    Handler han = new Handler(){
 
-        @Override
-        public void handleMessage(Message msg) {
-            super.handleMessage(msg);
-            if (msg.what == 0x001) {
-                executeStream();
-            }
-        }
-    };
 
     private static int flg=0;
 
@@ -96,8 +87,7 @@ public class MainActivity extends Activity implements OnClickListener {
         setContentView(R.layout.activity_main);
         SpeechUtility.createUtility(MainActivity.this, "appid=" + getString(R.string.app_id));
 
-        languageEntries = getResources().getStringArray(R.array.iat_language_entries);
-        languageValues = getResources().getStringArray(R.array.iat_language_value);
+
         initLayout();
         // 初始化识别无UI识别对象
         // 使用SpeechRecognizer对象，可根据回调消息自定义界面；
@@ -111,7 +101,7 @@ public class MainActivity extends Activity implements OnClickListener {
                 Activity.MODE_PRIVATE);
         mToast = Toast.makeText(this, "", Toast.LENGTH_SHORT);
         mResultText = ((EditText) findViewById(R.id.iat_text));
-        showContacts = (EditText) findViewById(R.id.iat_contacts);
+
     }
 
 
@@ -122,13 +112,9 @@ public class MainActivity extends Activity implements OnClickListener {
      */
     private void initLayout() {
         findViewById(R.id.iat_recognize).setOnClickListener(MainActivity.this);
-        findViewById(R.id.iat_recognize_stream).setOnClickListener(MainActivity.this);
-        findViewById(R.id.iat_upload_contacts).setOnClickListener(MainActivity.this);
-        findViewById(R.id.iat_upload_userwords).setOnClickListener(MainActivity.this);
-        findViewById(R.id.iat_stop).setOnClickListener(MainActivity.this);
-        findViewById(R.id.iat_cancel).setOnClickListener(MainActivity.this);
-        findViewById(R.id.image_iat_set).setOnClickListener(MainActivity.this);
-        findViewById(R.id.languageText).setOnClickListener(MainActivity.this);
+
+
+
     }
 
     int ret = 0; // 函数调用返回值
@@ -142,11 +128,7 @@ public class MainActivity extends Activity implements OnClickListener {
         }
 
         switch (view.getId()) {
-            // 进入参数设置页面
-            case R.id.image_iat_set:
-                Intent intents = new Intent(MainActivity.this, IatSettings.class);
-                startActivity(intents);
-                break;
+
             // 开始听写
             // 如何判断一次听写结束：OnResult isLast=true 或者 onError
             case R.id.iat_recognize:
@@ -159,7 +141,7 @@ public class MainActivity extends Activity implements OnClickListener {
                 // 设置参数
                 setParam();
                 boolean isShowDialog = mSharedPreferences.getBoolean(
-                        getString(R.string.pref_key_iat_show), true);
+                        getString(R.string.pref_key_iat_show), false);
                 if (isShowDialog) {
                     // 显示听写对话框
                     mIatDialog.setListener(mRecognizerDialogListener);
@@ -168,6 +150,7 @@ public class MainActivity extends Activity implements OnClickListener {
                 } else {
                     // 不显示听写对话框
                     ret = mIat.startListening(mRecognizerListener);
+
                     if (ret != ErrorCode.SUCCESS) {
                         showTip("听写失败,错误码：" + ret+",请点击网址https://www.xfyun.cn/document/error-code查询解决方案");
                     } else {
@@ -175,43 +158,8 @@ public class MainActivity extends Activity implements OnClickListener {
                     }
                 }
                 break;
-            // 音频流识别
-            case R.id.iat_recognize_stream:
-                executeStream();
-                break;
-            case R.id.languageText:
-                setLanguage(view);
-                break;
-            // 停止听写
-            case R.id.iat_stop:
-                mIat.stopListening();
-                showTip("停止听写");
-                break;
-            // 取消听写
-            case R.id.iat_cancel:
-                mIat.cancel();
-                showTip("取消听写");
-                break;
-            // 上传联系人
-            case R.id.iat_upload_contacts:
-                showTip(getString(R.string.text_upload_contacts));
-                ContactManager mgr = ContactManager.createManager(MainActivity.this,
-                        mContactListener);
-                mgr.asyncQueryAllContactsName();
-                break;
-            // 上传用户词表
-            case R.id.iat_upload_userwords:
-                showTip(getString(R.string.text_upload_userwords));
-                String contents = FucUtil.readFile(MainActivity.this, "userwords","utf-8");
-                showContacts.setText(contents);
 
-                // 指定引擎类型
-                mIat.setParameter(SpeechConstant.ENGINE_TYPE, SpeechConstant.TYPE_CLOUD);
-                mIat.setParameter(SpeechConstant.TEXT_ENCODING, "utf-8");
-                ret = mIat.updateLexicon("userword", contents, mLexiconListener);
-                if (ret != ErrorCode.SUCCESS)
-                    showTip("上传热词失败,错误码：" + ret+",请点击网址https://www.xfyun.cn/document/error-code查询解决方案");
-                break;
+
             default:
                 break;
         }
@@ -231,47 +179,9 @@ public class MainActivity extends Activity implements OnClickListener {
         }
     };
 
-    /**
-     * 在线听写支持多种小语种设置。支持语言类型如下：
-     *         <item>zh_cn</item> 中文
-     *         <item>en_us</item> 英文
-     *         <item>ja_jp</item> 日语
-     *         <item>ru-ru</item> 俄语
-     *         <item>es_es</item> 西班牙语
-     *         <item>fr_fr</item> 法语
-     *         <item>ko_kr</item> 韩语
-     * @param v
-     */
-    private void setLanguage(View v){
-        new AlertDialog.Builder(v.getContext()).setTitle("语种语言种类")
-                .setSingleChoiceItems(languageEntries, // 单选框有几项,各是什么名字
-                        0, // 默认的选项
-                        new DialogInterface.OnClickListener() { // 点击单选框后的处理
-                            public void onClick(DialogInterface dialog,
-                                                int which) { // 点击了哪一项
-                                language = languageValues[which];
-                                ((TextView)findViewById(R.id.languageText)).setText("你选择的是："+languageEntries[which]);
-                                selectedNum = which;
-                                dialog.dismiss();
-                            }
-                        }).show();
-        mIat.setParameter(SpeechConstant.LANGUAGE, language);
-    }
 
-    /**
-     * 上传联系人/词表监听器。
-     */
-    private LexiconListener mLexiconListener = new LexiconListener() {
 
-        @Override
-        public void onLexiconUpdated(String lexiconId, SpeechError error) {
-            if (error != null) {
-                showTip(error.toString());
-            } else {
-                showTip(getString(R.string.text_upload_success));
-            }
-        }
-    };
+
 
     /**
      * 听写监听器。
@@ -313,12 +223,7 @@ public class MainActivity extends Activity implements OnClickListener {
                 mResultText.setSelection(mResultText.length());
             }
 
-            if (isLast & cyclic) {
-                // TODO 最后的结果
-                Message message = Message.obtain();
-                message.what = 0x001;
-                han.sendMessageDelayed(message,100);
-            }
+
         }
 
         @Override
@@ -381,31 +286,6 @@ public class MainActivity extends Activity implements OnClickListener {
 
     };
 
-    /**
-     * 获取联系人监听器。
-     */
-    private ContactListener mContactListener = new ContactListener() {
-
-        @Override
-        public void onContactQueryFinish(final String contactInfos, boolean changeFlag) {
-            // 注：实际应用中除第一次上传之外，之后应该通过changeFlag判断是否需要上传，否则会造成不必要的流量.
-            // 每当联系人发生变化，该接口都将会被回调，可通过ContactManager.destroy()销毁对象，解除回调。
-            // if(changeFlag) {
-            // 指定引擎类型
-            runOnUiThread(new Runnable() {
-                public void run() {
-                    showContacts.setText(contactInfos);
-                }
-            });
-
-            mIat.setParameter(SpeechConstant.ENGINE_TYPE,SpeechConstant.TYPE_CLOUD);
-            mIat.setParameter(SpeechConstant.TEXT_ENCODING, "utf-8");
-            ret = mIat.updateLexicon("contact", contactInfos, mLexiconListener);
-            if (ret != ErrorCode.SUCCESS) {
-                showTip("上传联系人失败：" + ret);
-            }
-        }
-    };
 
     private void showTip(final String str) {
         mToast.setText(str);
@@ -484,49 +364,7 @@ public class MainActivity extends Activity implements OnClickListener {
         super.onPause();
     }
 
-    //执行音频流识别操作
-    private void executeStream() {
-        buffer.setLength(0);
-        mResultText.setText(null);// 清空显示内容
-        mIatResults.clear();
-        // 设置参数
-        setParam();
-        // 设置音频来源为外部文件
-        mIat.setParameter(SpeechConstant.AUDIO_SOURCE, "-1");
-        // 也可以像以下这样直接设置音频文件路径识别（要求设置文件在sdcard上的全路径）：
-        // mIat.setParameter(SpeechConstant.AUDIO_SOURCE, "-2");
-        //mIat.setParameter(SpeechConstant.ASR_SOURCE_PATH, "sdcard/XXX/XXX.pcm");
-        ret = mIat.startListening(mRecognizerListener);
-        if (ret != ErrorCode.SUCCESS) {
-            showTip("识别失败,错误码：" + ret+",请点击网址https://www.xfyun.cn/document/error-code查询解决方案");
-        } else {
-            byte[] audioData = FucUtil.readAudioFile(MainActivity.this, "iattest.wav");
 
-            if (null != audioData) {
-                showTip(getString(R.string.text_begin_recognizer));
-                // 一次（也可以分多次）写入音频文件数据，数据格式必须是采样率为8KHz或16KHz（本地识别只支持16K采样率，云端都支持），
-                // 位长16bit，单声道的wav或者pcm
-                // 写入8KHz采样的音频时，必须先调用setParameter(SpeechConstant.SAMPLE_RATE, "8000")设置正确的采样率
-                // 注：当音频过长，静音部分时长超过VAD_EOS将导致静音后面部分不能识别。
-                ArrayList<byte[]> bytes = FucUtil.splitBuffer(audioData,audioData.length,audioData.length/3);
-                for(int i=0;i<bytes.size();i++) {
-                    mIat.writeAudio(bytes.get(i), 0, bytes.get(i).length );
-
-                    try {
-                        Thread.sleep(1000);
-                    }catch(Exception e){
-
-                    }
-                }
-                mIat.stopListening();
-				/*mIat.writeAudio(audioData, 0, audioData.length );
-				mIat.stopListening();*/
-            } else {
-                mIat.cancel();
-                showTip("读取音频流失败");
-            }
-        }
-    }
     private void requestPermissions(){
         try {
             if (Build.VERSION.SDK_INT >= 23) {
