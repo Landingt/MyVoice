@@ -229,7 +229,8 @@ public class MainActivity extends Activity implements OnClickListener {
         @Override
         public void onVolumeChanged(int volume, byte[] data) {
             showTip("当前正在说话，音量大小：" + volume);
-            Log.d(TAG, "返回音频数据："+data.length);
+            Log.d(TAG, "" +
+                    "+："+data.length);
         }
 
         @Override
@@ -261,7 +262,7 @@ public class MainActivity extends Activity implements OnClickListener {
         for (String key : mIatResults.keySet()) {
             resultBuffer.append(mIatResults.get(key));
         }
-
+        Toast.makeText(getApplicationContext(),resultBuffer.toString(),Toast.LENGTH_SHORT).show();
         mResultText.setText(resultBuffer.toString());
         mResultText.setSelection(mResultText.length());
     }
